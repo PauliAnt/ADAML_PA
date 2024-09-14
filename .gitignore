@@ -1,7 +1,8 @@
 .venv
 *.csv
 *local*
-
+*.h5
+*.json
 # Compiled source #
 ###################
 *.com
