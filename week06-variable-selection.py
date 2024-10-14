@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import make_pipeline
@@ -36,6 +37,9 @@ def pls_r2_variable_selection(X, y, V):
     s : list
         Indices of the selected features, sorted by selection order.
     """
+    X = X.values
+    y = y.values
+    
     n, m = X.shape
     s = []  # Selected variables
     sn = list(range(m))  # Unselected variables
@@ -48,10 +52,10 @@ def pls_r2_variable_selection(X, y, V):
     scaler_y = StandardScaler()
     y_scaled = scaler_y.fit_transform(y.reshape(-1, 1)).flatten()
     
-    for v in range(V):
+    for v in tqdm( range(V) ):
         TSS = np.sum((y_scaled - np.mean(y_scaled))**2)
         R2_values = []
-        
+        print(v)
         for i, m in enumerate(sn):
             s_temp = s + [m]
             X_temp = X_scaled[:, s_temp]
@@ -66,6 +70,7 @@ def pls_r2_variable_selection(X, y, V):
             # Calculate RSS and R2
             RSS = np.sum((y_scaled - y_pred)**2)
             R2 = 1 - RSS / TSS
+            # print( R2 )
             R2_values.append(R2)
         
         # Select the variable with the highest R2
@@ -75,13 +80,14 @@ def pls_r2_variable_selection(X, y, V):
         N += 1
         M -= 1
     
-    return s
+    return s, R2_values
 
 # Example usage:
 # X = ... # Your input data matrix
 # y = ... # Your target variable
 # V = 10  # Number of variables to select
 V = 100
-selected_features = pls_r2_variable_selection(X_cal, Y_cal, V)
+selected_features, R2_values = pls_r2_variable_selection(X_cal, Y_cal, V)
 
-
+# Visualizing the R2 values
+plt.plot(R2_values)
