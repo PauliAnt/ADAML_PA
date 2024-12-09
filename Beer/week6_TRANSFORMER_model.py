@@ -6,18 +6,31 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset, random_split
 # Define LSTM model
-class LSTMModel(nn.Module):
-    def __init__(self, input_size=1, hidden_size=32, num_layers=2, output_size=1):
-        super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+class TransformerModel(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, nhead, num_layers, seq_length):
+        super(TransformerModel, self).__init__()
+        self.embedding = nn.Linear(input_dim, hidden_dim)  # To map input to model's dimension
+        
+        # Create a positional encoding for the sequence
+        self.positional_encoding = nn.Parameter(torch.zeros(1, seq_length, hidden_dim))
+
+        # Transformer encoder layers
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=nhead, batch_first=True)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        # Final fully connected layer to map to output
+        self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        output = self.fc(lstm_out[:, -1, :])
-        return output
+        # Embed the input and add positional encoding
+        x = self.embedding(x) + self.positional_encoding
+        x = self.transformer_encoder(x)
+        
+        # Use the representation of the last time step for the final prediction
+        out = self.fc(x[:, -1, :])
+        return out
     
-def load_data(file,seq_length,device):
+def load_data(file,seq_length):
 
     # Load data
     data = pd.read_csv(file,index_col=0,parse_dates=True)
@@ -49,8 +62,8 @@ def load_data(file,seq_length,device):
     X, y = create_sequences(sales_scaled, seq_length)
 
     # Convert to tensors
-    X_tensor = torch.tensor(X, dtype=torch.float32).to(device)
-    y_tensor = torch.tensor(y, dtype=torch.float32).to(device)
+    X_tensor = torch.tensor(X, dtype=torch.float32)
+    y_tensor = torch.tensor(y, dtype=torch.float32)
 
 
 
